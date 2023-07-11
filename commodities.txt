@@ -1,0 +1,8 @@
+gold
+silver
+copper
+brent-oil
+crude-oil
+natural-gas
+heating-oil
+us-cotton-no.2
