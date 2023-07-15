@@ -1,8 +1,4 @@
-# Pull news headlines about Nike - everyday from july 3 2018 to july 3 2023
-# Run sentiment analysis - collect neg, neu, pos scores for each headline
-# take average for each score for each day
-# combine sentiment with scraped stock + currency data 
-# combine with downlaoded other data
+# Will write own Google News scraper at a later date <3
 
 # Import libraries
 import requests
@@ -14,35 +10,66 @@ import nltk
 nltk.downloader.download('vader_lexicon')
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-def getURL(symb):
+def getFinURL(symb):
     finwiz_urlPt1 = 'https://finviz.com/quote.ashx?t='
 
     return finwiz_urlPt1 + str(symb)
 
-def getSoup(url):
+def getFinSoup(url):
     headerUser = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36'}
     resp = requests.get(url, headers=headerUser)
     commDataSoup = BeautifulSoup(resp.text, 'html.parser')
 
     return commDataSoup
 
-def getHeadlineTable(soup, symb):
-    newsTable = soup.find(id='news-table')
-    rows = newsTable.findAll("tr")
+def getFinHeadlineTable(soup, symb):
+    newsTable = soup.findAll(id='news-table')
 
-    listDataRows = []
-    for i, table_row in enumerate(rows):
-        headline = table_row.a.text
-        date_time = table_row.td.text.split()
+    if len(newsTable) != 0:
+        rows = newsTable[0].findAll("tr")
 
-        date = date_time[0]
-        time = date_time[1]
+        listDataRows = []
+        for i, table_row in enumerate(rows):
+        
+            headlineA = table_row.find_all("a")
+            date_timeTD = table_row.find_all("td")
 
-        listDataRows.append([symb, date, time, headline])
-    
-    dfHeadlines = pd.DataFrame(listDataRows, columns = ['stocksymbol', 'date', 'time', 'headline'])
+            if (len(headlineA) != 0):
+                headline = headlineA[0].text
+                date_time = date_timeTD[0].text.split()
 
-    return dfHeadlines
+
+                if len(date_time) != 1:
+                    date = date_time[0]
+                    time = date_time[1]
+                else:
+                    time = date_time[0]
+
+                listDataRows.append([symb, date, time, headline])
+            else:
+                continue
+        
+        dfHeadlines = pd.DataFrame(listDataRows, columns = ['stocksymbol', 'date', 'time', 'headline'])
+
+        return dfHeadlines
+    else:
+        return pd.DataFrame()
+
+def scrapeFinViz(symb):
+    symbURL = getFinURL(symb)
+    symbSoup = getFinSoup(symbURL)
+    symbAllHeadlines = getFinHeadlineTable(symbSoup, symb)
+
+    return symbAllHeadlines
+
+
+def scrapeGoogleNews(symb):
+    url = "https://www.google.com/search?q=nike+stock&tbs=cdr:1,cd_min:7/3/2018,cd_max:7/3/2023,sbd:1&tbm=nws&num=300"
+    page = requests.get(url).text
+    soup = BeautifulSoup(page, 'html.parser')
+
+
+
 
 def getSentimentScores(dfHeadlines):
     vader = SentimentIntensityAnalyzer()
@@ -54,10 +81,11 @@ def getSentimentScores(dfHeadlines):
 
     return scores_headlines_df
 
-def getAverageScores(dfScoresAndHeadlines):
-    df_Scores_Grouped_Mean = dfScoresAndHeadlines.groupby(['stocksymbol','date']).mean()
-    df_Scores_Grouped_Mean = df_Scores_Grouped_Mean.unstack()
-    df_Scores_Grouped_Mean = df_Scores_Grouped_Mean.xs('compound', axis=1).transpose()
+def getAverageScores(dfScoresAndHeadlines, stockSymb):
+    dfScoresAndHeadlines = dfScoresAndHeadlines.drop(columns=["stocksymbol", "time", "headline"])
+
+    df_Scores_Grouped_Mean = dfScoresAndHeadlines.groupby(['date']).mean().reset_index()
+    df_Scores_Grouped_Mean = df_Scores_Grouped_Mean.add_prefix(stockSymb + "_")
 
     return df_Scores_Grouped_Mean
 
@@ -68,16 +96,25 @@ def main(source_filename, finaldata_filename):
     with open(source_filename) as f:
         for line in f.readlines():
             symb = line.strip()
-            symbURL = getURL(symb)
-            symbSoup = getSoup(symbURL)
-            symbAllHeadlines = getHeadlineTable(symbSoup, symb)
-            symbScoresHeadlines = getSentimentScores(symbAllHeadlines)
-            
-            dfMeanScores = getAverageScores(symbScoresHeadlines)
+            finAllHeadlines = scrapeFinViz(symb)
+            googleAllHeadlines = scrapeGoogleNews(symb)
+
+            symbAllHeadlines = pd.concat([finAllHeadlines, googleAllHeadlines], axis = 0)
+
+            if symbAllHeadlines.empty:
+                continue
+            else:
+                symbScoresHeadlines = getSentimentScores(symbAllHeadlines)
+                
+                dfMeanScores = getAverageScores(symbScoresHeadlines, symb)
+
+                dataFull = pd.concat([dataFull, dfMeanScores], axis = 1)
+           
 
     f.close()
 
-    dfMeanScores.to_csv(finaldata_filename)
+
+    dataFull.to_csv(finaldata_filename)
 
 main("stocks.txt", "stock_sentiments.csv")
 
