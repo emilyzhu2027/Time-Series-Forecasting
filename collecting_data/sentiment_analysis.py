@@ -1,9 +1,12 @@
 # Will write own Google News scraper at a later date <3
 
+# Credits: https://towardsdatascience.com/stock-news-sentiment-analysis-with-python-193d4b4378d4
+
 # Import libraries
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from gnews import GNews
 
 # USING NLTK FOR SENTIMENT ANALYSIS
 import nltk
@@ -50,6 +53,7 @@ def getFinHeadlineTable(soup, symb):
                 continue
         
         dfHeadlines = pd.DataFrame(listDataRows, columns = ['stocksymbol', 'date', 'time', 'headline'])
+        dfHeadlines['date'] = pd.to_datetime(dfHeadlines.date, format="%b-%d-%y").dt.date
 
         return dfHeadlines
     else:
@@ -64,12 +68,27 @@ def scrapeFinViz(symb):
 
 
 def scrapeGoogleNews(symb):
-    url = "https://www.google.com/search?q=nike+stock&tbs=cdr:1,cd_min:7/3/2018,cd_max:7/3/2023,sbd:1&tbm=nws&num=300"
-    page = requests.get(url).text
-    soup = BeautifulSoup(page, 'html.parser')
+    google_news = GNews(language='en', start_date=(2018, 7, 3), end_date=(2023, 7, 3))
+    symb_news = google_news.get_news(symb + " news")
+    news_Df = pd.DataFrame(symb_news)
+    
+    news_Df = news_Df.drop(columns = ["publisher", "description", "url"])
+    news_Df.rename(columns={'title': 'headline', 'published date': 'raw_date'}, inplace = True)
+
+    rawDateData = news_Df["raw_date"].str.split(" ", n = 1, expand = True)
+    news_Df['date_time'] = rawDateData[1]
+
+    news_Df['date'] = news_Df['date_time'].astype(str).str[0:11]
+    news_Df['time'] = news_Df['date_time'].astype(str).str[12:]
 
 
+    news_Df['date'] = pd.to_datetime(news_Df['date'], format = "%d %b %Y").dt.date
 
+    news_Df = news_Df.drop(columns = ["raw_date", "date_time"])
+
+    news_Df["stocksymbol"] = symb
+
+    return news_Df
 
 def getSentimentScores(dfHeadlines):
     vader = SentimentIntensityAnalyzer()
@@ -77,7 +96,7 @@ def getSentimentScores(dfHeadlines):
     scores = dfHeadlines['headline'].apply(vader.polarity_scores).tolist()
     scores_df = pd.DataFrame(scores)
 
-    scores_headlines_df = pd.concat([dfHeadlines, scores_df], axis=1)
+    scores_headlines_df = pd.concat([dfHeadlines.reset_index(drop=True), scores_df.reset_index(drop=True)], axis=1)
 
     return scores_headlines_df
 
@@ -96,6 +115,7 @@ def main(source_filename, finaldata_filename):
     with open(source_filename) as f:
         for line in f.readlines():
             symb = line.strip()
+
             finAllHeadlines = scrapeFinViz(symb)
             googleAllHeadlines = scrapeGoogleNews(symb)
 
@@ -109,10 +129,9 @@ def main(source_filename, finaldata_filename):
                 dfMeanScores = getAverageScores(symbScoresHeadlines, symb)
 
                 dataFull = pd.concat([dataFull, dfMeanScores], axis = 1)
-           
+            print(".")
 
     f.close()
-
 
     dataFull.to_csv(finaldata_filename)
 
