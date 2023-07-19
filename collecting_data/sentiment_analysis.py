@@ -33,7 +33,7 @@ def getFinHeadlineTable(soup, symb):
 
         listDataRows = []
         for i, table_row in enumerate(rows):
-        
+
             headlineA = table_row.find_all("a")
             date_timeTD = table_row.find_all("td")
 
@@ -51,7 +51,7 @@ def getFinHeadlineTable(soup, symb):
                 listDataRows.append([symb, date, time, headline])
             else:
                 continue
-        
+
         dfHeadlines = pd.DataFrame(listDataRows, columns = ['stocksymbol', 'date', 'time', 'headline'])
         dfHeadlines['date'] = pd.to_datetime(dfHeadlines.date, format="%b-%d-%y").dt.date
 
@@ -71,7 +71,7 @@ def scrapeGoogleNews(symb):
     google_news = GNews(language='en', start_date=(2018, 7, 3), end_date=(2023, 7, 3))
     symb_news = google_news.get_news(symb + " news")
     news_Df = pd.DataFrame(symb_news)
-    
+
     news_Df = news_Df.drop(columns = ["publisher", "description", "url"])
     news_Df.rename(columns={'title': 'headline', 'published date': 'raw_date'}, inplace = True)
 
@@ -125,7 +125,7 @@ def main(source_filename, finaldata_filename):
                 continue
             else:
                 symbScoresHeadlines = getSentimentScores(symbAllHeadlines)
-                
+
                 dfMeanScores = getAverageScores(symbScoresHeadlines, symb)
 
                 dataFull = pd.concat([dataFull, dfMeanScores], axis = 1)
@@ -135,13 +135,4 @@ def main(source_filename, finaldata_filename):
 
     dataFull.to_csv(finaldata_filename)
 
-main("stocks.txt", "stock_sentiments.csv")
-
-
-
-
-        
-
-        
-
-
+main("stocks.txt", "webscraped_data/stock_sentiments.csv")
