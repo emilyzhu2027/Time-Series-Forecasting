@@ -104,13 +104,13 @@ def getAverageScores(dfScoresAndHeadlines, stockSymb):
     dfScoresAndHeadlines = dfScoresAndHeadlines.drop(columns=["stocksymbol", "time", "headline"])
 
     df_Scores_Grouped_Mean = dfScoresAndHeadlines.groupby(['date']).mean().reset_index()
-    df_Scores_Grouped_Mean = df_Scores_Grouped_Mean.add_prefix(stockSymb + "_")
 
+    df_Scores_Grouped_Mean.rename({col: stockSymb + "_" + col for col in df_Scores_Grouped_Mean.columns if col not in ['date']}, inplace = True)
+   
     return df_Scores_Grouped_Mean
 
 
-def main(source_filename, finaldata_filename):
-    dataFull = pd.DataFrame() # set index as dates, columns as stocks
+def main(source_filename):
 
     with open(source_filename) as f:
         for line in f.readlines():
@@ -127,12 +127,10 @@ def main(source_filename, finaldata_filename):
                 symbScoresHeadlines = getSentimentScores(symbAllHeadlines)
 
                 dfMeanScores = getAverageScores(symbScoresHeadlines, symb)
+                dfMeanScores.to_csv("sentiment_data/" + symb + "_sentiment.csv")
 
-                dataFull = pd.concat([dataFull, dfMeanScores], axis = 1)
             print(".")
 
     f.close()
 
-    dataFull.to_csv(finaldata_filename)
-
-main("stocks.txt", "webscraped_data/stock_sentiments.csv")
+main("stocks.txt")
