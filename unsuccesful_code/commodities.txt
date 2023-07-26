@@ -1,5 +1,0 @@
-gold
-crude-oil
-natural-gas
-heating-oil
-us-cotton-no.2

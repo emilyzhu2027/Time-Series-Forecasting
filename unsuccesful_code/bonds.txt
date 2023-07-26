@@ -1,6 +1,0 @@
-u.s.-1-month-bond-yield
-u.s.-3-month-bond-yield
-u.s.-6-month-bond-yield
-u.s.-1-year-bond-yield
-u.s.-5-year-bond-yield
-u.s.-10-year-bond-yield
