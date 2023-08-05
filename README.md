@@ -14,7 +14,11 @@ This project attempts to use a LSTM recurrent neural network to predict the dire
 * collecting_data/full_data.csv: full collected data
 * neuralnetwork.py: scales and imputes data, trains and tests the LSTM RNN
 #### Project Status:
-I've completed collecting data. And now, I'm currently working on coding and testing the neural network to optimize it.
+Completed! 
+###### A couple notes I wanted to add:
+* There are many ways that my model could've been improved, and I'm constantly learning more about neural networks and data science.
+* But, the primary issue I dealt with was simply not having enough data. Creating my own data by collecting and webscraping it was a great exercise, and I was able to learn a lot about the tools necessary to do so. However, (as is common with real-life data), there was a lot of missing data, especially with the sentiment analysis data, because headlines about stocks and companies don't come out every day. Additionally, the data isn't necessarily missing completely at random which made imputation or interpolation slightly difficult. In an attempt to resolve this issue, I decided to turn my data from a daily time series to a weekly time series. But, this led to another issue wherein my dataset ended up being very small with the number of features and the number of observations being quite uneven and not ideal for training a neural network. 
+* Additionally, I could probably have better fine-tuned the neural network itself. I will continue to work on better understanding what each layer does and how to best adjust the parameters for the data. 
 #### Usage:
 ##### To begin with collecting data --
 * Download combining_data.py, sentiment_analysis.py, webscrape_yahoo.py, stocks.txt, currencies.txt
@@ -32,3 +36,4 @@ I've completed collecting data. And now, I'm currently working on coding and tes
 * https://towardsdatascience.com/recurrent-neural-networks-by-example-in-python-ffd204f99470
 * https://christianmartinezfinancialfox.medium.com/learning-python-for-finance-how-to-get-started-with-advanced-financial-forecasting-in-python-43553dac9d69
 * https://towardsdatascience.com/lstm-recurrent-neural-networks-how-to-teach-a-network-to-remember-the-past-55e54c2ff22e
+* https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
